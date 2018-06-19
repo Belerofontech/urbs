@@ -178,6 +178,16 @@ def compare_scenarios(result_files, output_filename):
     esums = esums[used_commodities].sort_index().transpose()
     esums = esums / 1e3
 
+    ## Belerofontech: was at the end of this method, moved here to write Excel file before returning
+    # REPORT
+    with pd.ExcelWriter('{}.{}'.format(output_filename, 'xlsx')) as writer:
+        costs.to_excel(writer, 'Costs')
+        esums.to_excel(writer, 'Energy sums')
+
+    ## Belerofontech: avoid generating PDF and PNG results...
+    return
+    ## Belerofontech: avoid generating PDF and PNG results...
+
     # PLOT
 
     fig = plt.figure(figsize=(20, 8))
@@ -236,11 +246,6 @@ def compare_scenarios(result_files, output_filename):
     for ext in ['png', 'pdf']:
         fig.savefig('{}.{}'.format(output_filename, ext),
                     bbox_inches='tight')
-
-    # REPORT
-    with pd.ExcelWriter('{}.{}'.format(output_filename, 'xlsx')) as writer:
-        costs.to_excel(writer, 'Costs')
-        esums.to_excel(writer, 'Energy sums')
 
 if __name__ == '__main__':
 
