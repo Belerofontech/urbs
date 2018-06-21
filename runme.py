@@ -140,9 +140,10 @@ def run_scenario(input_file, timesteps, scenario, result_dir, dt,
         report_sites_name=report_sites_name)
 
     # result plots
-    ## Belerofontech: avoid generating PDF and PNG results...
-    return prob
-    ## Belerofontech: avoid generating PDF and PNG results...
+    ## Belerofontech: avoid generating PDF and PNG results when not possible...
+    if os.environ.get('DISPLAY', '') == '' and os.environ.get('MPLBACKEND', '') == '':
+    	return prob
+    ## Belerofontech: avoid generating PDF and PNG results when not possible...
 
     urbs.result_figures(
         prob,

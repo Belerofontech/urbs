@@ -1,7 +1,7 @@
 # Belerofontech note
 This repo contains minor modifications on top of [tum-ens/urbs](https://github.com/tum-ens/urbs):
   * Added requirements.txt (from pip3) to track packages/modules used
-  * Modified source code to avoid PDF and PNG report generation, avoiding graphical dependencies in Ubuntu Server.
+  * Modified source code to avoid PDF and PNG report generation when the necessary setup is not ready in Ubuntu Server (matplotlib backend not modified, and no X session available).
 
 # urbs
 
