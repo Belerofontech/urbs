@@ -1,3 +1,9 @@
+# Belerofontech note
+This repo contains minor modifications on top of [tum-ens/urbs](https://github.com/tum-ens/urbs):
+  * Added requirements.txt (from pip3) to track packages/modules used.
+  * Modified runme.py and comp.py to avoid PDF and PNG report generation when the necessary setup is not ready in Ubuntu Server (matplotlib backend not modified, and no X session available).
+  * Modified runme.py to use CBC solver.
+
 # urbs
 
 urbs is a [linear programming](https://en.wikipedia.org/wiki/Linear_programming) optimisation model for capacity expansion planning and unit commitment for distributed energy systems. Its name, latin for city, stems from its origin as a model for optimisation for urban energy systems. Since then, it has been adapted to multiple scales from neighbourhoods to continents.
