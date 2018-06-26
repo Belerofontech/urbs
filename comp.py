@@ -1,9 +1,7 @@
 import glob
 import math
-import matplotlib.gridspec as gridspec
-import matplotlib.pyplot as plt
-import matplotlib.ticker as tkr
 import os
+import platform
 import pandas as pd
 import urbs
 import sys
@@ -185,11 +183,14 @@ def compare_scenarios(result_files, output_filename):
         esums.to_excel(writer, 'Energy sums')
 
     ## Belerofontech: avoid generating PDF and PNG results when not possible...
-    if os.environ.get('DISPLAY', '') == '' and os.environ.get('MPLBACKEND', '') == '':
+    if platform.system() == 'Linux' and os.environ.get('DISPLAY', '') == '' and os.environ.get('MPLBACKEND', '') == '':
     	return
     ## Belerofontech: avoid generating PDF and PNG results when not possible...
 
     # PLOT
+    import matplotlib.pyplot as plt
+    import matplotlib.gridspec as gridspec
+    import matplotlib.ticker as tkr
 
     fig = plt.figure(figsize=(20, 8))
     gs = gridspec.GridSpec(1, 2, width_ratios=[2, 3])

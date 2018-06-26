@@ -3,6 +3,7 @@ import pandas as pd
 import pyomo.environ
 import shutil
 import urbs
+import platform
 from datetime import datetime
 from pyomo.opt.base import SolverFactory
 
@@ -141,7 +142,7 @@ def run_scenario(input_file, timesteps, scenario, result_dir, dt,
 
     # result plots
     ## Belerofontech: avoid generating PDF and PNG results when not possible...
-    if os.environ.get('DISPLAY', '') == '' and os.environ.get('MPLBACKEND', '') == '':
+    if platform.system() == 'Linux' and os.environ.get('DISPLAY', '') == '' and os.environ.get('MPLBACKEND', '') == '':
     	return prob
     ## Belerofontech: avoid generating PDF and PNG results when not possible...
 

@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
@@ -332,6 +331,8 @@ def result_figures(prob, figure_basename, timesteps, plot_title_prefix=None,
                     default: png, pdf
         **kwds: (optional) keyword arguments are forwarded to urbs.plot()
     """
+    import matplotlib.pyplot as plt
+
     # retrieve parameter 'dt' from the model
     dt = get_entity(prob, 'dt')
 
