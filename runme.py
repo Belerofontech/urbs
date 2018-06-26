@@ -85,6 +85,12 @@ def setup_solver(optim, logfile='solver.log'):
         optim.set_options("log={}".format(logfile))
         # optim.set_options("tmlim=7200")  # seconds
         # optim.set_options("mipgap=.0005")
+    elif optim.name == 'cbc':
+        # reference with list of options
+        # execute 'man cbc'
+        # optim.set_options("threads=2")
+        print("Warning from setup_solver: solver '{}' will not "
+	      "print anything to stdout!".format(optim.name))
     else:
         print("Warning from setup_solver: no options set for solver "
               "'{}'!".format(optim.name))
@@ -128,7 +134,16 @@ def run_scenario(input_file, timesteps, scenario, result_dir, dt,
     # solve model and read results
     optim = SolverFactory('cbc')  # cplex, glpk, gurobi, ...
     optim = setup_solver(optim, logfile=log_filename)
+    # Belerofontech: manually redirect cbc output (stdout only) to logfile
+    from os import dup, dup2, close
+    f = open(log_filename, 'w')
+    orig_std_out = dup(1)
+    dup2(f.fileno(), 1)
     result = optim.solve(prob, tee=True)
+    # Belerofontech: restore stdout behaviour
+    dup2(orig_std_out, 1)
+    close(orig_std_out)
+    f.close()
 
     # save problem solution (and input data) to HDF5 file
     urbs.save(prob, os.path.join(result_dir, '{}.h5'.format(sce)))
