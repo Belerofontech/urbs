@@ -28,16 +28,16 @@ def sort_plot_elements(elements):
 
     # calculate standard deviation
     std = pd.DataFrame(np.zeros_like(elements.tail(1)),
-                       index=elements.index[-1:]+1,
+                       index=elements.index[-1:] + 1,
                        columns=elements.columns)
     # calculate mean
     mean = pd.DataFrame(np.zeros_like(elements.tail(1)),
-                        index=elements.index[-1:]+1,
+                        index=elements.index[-1:] + 1,
                         columns=elements.columns)
     # calculate quotient
     quotient = pd.DataFrame(
         np.zeros_like(elements.tail(1)),
-        index=elements.index[-1:]+1,
+        index=elements.index[-1:] + 1,
         columns=elements.columns)
 
     for col in std.columns:
@@ -55,7 +55,7 @@ def sort_plot_elements(elements):
     return elements_sorted
 
 
-def plot(prob, com, sit, dt, timesteps, timesteps_plot,
+def plot(prob, stf, com, sit, dt, timesteps, timesteps_plot,
          power_name='Power', energy_name='Energy',
          power_unit='MW', energy_unit='MWh', time_unit='h',
          figure_size=(16, 12)):
@@ -65,19 +65,19 @@ def plot(prob, com, sit, dt, timesteps, timesteps_plot,
     with stored energy in a second subplot.
 
     Args:
-        prob: urbs model instance
-        com: commodity name to plot
-        sit: site name to plot
-        dt: length of each time step (unit: hours)
-        timesteps: modelled timesteps
-        timesteps_plot: timesteps to be plotted
-
-        power_name: optional string for 'power' label; default: 'Power'
-        power_unit: optional string for unit; default: 'MW'
-        energy_name: optional string for 'energy' label; default: 'Energy'
-        energy_unit: optional string for storage plot; default: 'MWh'
-        time_unit: optional string for time unit label; default: 'h'
-        figure_size: optional (width, height) tuple in inch; default: (16, 12)
+        - prob: urbs model instance
+        - stf: support timeframe
+        - com: commodity name to plot
+        - sit: site name to plot
+        - dt: length of each time step (unit: hours)
+        - timesteps: modelled timesteps
+        - timesteps_plot: timesteps to be plotted
+        - power_name: optional string for 'power' label; default: 'Power'
+        - power_unit: optional string for unit; default: 'MW'
+        - energy_name: optional string for 'energy' label; default: 'Energy'
+        - energy_unit: optional string for storage plot; default: 'MWh'
+        - time_unit: optional string for time unit label; default: 'h'
+        - figure_size: optional (width, height) tuple in inch; default: (16, 12)
 
     Returns:
         fig: figure handle
@@ -98,9 +98,7 @@ def plot(prob, com, sit, dt, timesteps, timesteps_plot,
         sit = [sit]
 
     (created, consumed, stored, imported, exported,
-     dsm) = get_timeseries(prob, com, sit, timesteps)
-
-    costs, cpro, ctra, csto = get_constants(prob)
+     dsm) = get_timeseries(prob, stf, com, sit, timesteps)
 
     # move retrieved/stored storage timeseries to created/consumed and
     # rename storage columns back to 'storage' for color mapping
@@ -118,6 +116,7 @@ def plot(prob, com, sit, dt, timesteps, timesteps_plot,
 
     # move demand to its own plot
     demand = consumed.pop('Demand')
+    # if DSM mode was activated
     original = dsm.pop('Unshifted')
     deltademand = dsm.pop('Delta')
     try:
@@ -163,7 +162,7 @@ def plot(prob, com, sit, dt, timesteps, timesteps_plot,
 
     # stack plot for consumed commodities (divided by dt for power)
     sp00 = ax0.stackplot(hoursteps[1:],
-                         -consumed.as_matrix().T/dt[0],
+                         -consumed.values.T / dt[0],
                          labels=tuple(consumed.columns),
                          linewidth=0.15)
     # color
@@ -177,7 +176,7 @@ def plot(prob, com, sit, dt, timesteps, timesteps_plot,
 
     # stack plot for created commodities (divided by dt for power)
     sp0 = ax0.stackplot(hoursteps[1:],
-                        created.as_matrix().T/dt[0],
+                        created.values.T / dt[0],
                         labels=tuple(created.columns),
                         linewidth=0.15)
 
@@ -222,13 +221,13 @@ def plot(prob, com, sit, dt, timesteps, timesteps_plot,
     plt.setp(ax0.get_xticklabels(), visible=False)
 
     # PLOT DEMAND
-
     # line plot for demand (unshifted) commodities (divided by dt for power)
-    ax0.plot(hoursteps, original.values/dt[0], linewidth=0.8,
+    ax0.plot(hoursteps, original.values / dt[0], linewidth=0.8,
              color=to_color('Unshifted'))
 
-    # line plot for demand (shifted) commodities (divided by dt for power)
-    ax0.plot(hoursteps[1:], demand.values/dt[0], linewidth=1.0,
+    # line plot for demand (in case of DSM mode: shifted) commodities
+    # (divided by dt for power)
+    ax0.plot(hoursteps[1:], demand.values / dt[0], linewidth=1.0,
              color=to_color('Shifted'))
 
     # PLOT STORAGE
@@ -236,7 +235,11 @@ def plot(prob, com, sit, dt, timesteps, timesteps_plot,
     all_axes.append(ax1)
 
     # stack plot for stored commodities
-    sp1 = ax1.stackplot(hoursteps, stored.values, linewidth=0.15)
+    try:
+        sp1 = ax1.stackplot(hoursteps, stored.values, linewidth=0.15)
+    except BaseException:
+        stored = pd.Series(0, index=hoursteps)
+        sp1 = ax1.stackplot(hoursteps, stored.values, linewidth=0.15)
     if plot_dsm:
         # hide xtick labels only if DSM plot follows
         plt.setp(ax1.get_xticklabels(), visible=False)
@@ -249,10 +252,10 @@ def plot(prob, com, sit, dt, timesteps, timesteps_plot,
     sp1[0].set_edgecolor(to_color('Decoration'))
     ax1.set_ylabel('{} ({})'.format(energy_name, energy_unit))
 
-    try:
-        ax1.set_ylim((0, 0.5 + csto.loc[sit, :, com]['C Total'].sum()))
-    except KeyError:
-        pass
+    # try:
+    # ax1.set_ylim((0, 0.5 + csto.loc[sit, :, com]['C Total'].sum()))
+    # except KeyError:
+    # pass
 
     # PLOT DEMAND SIDE MANAGEMENT
     if plot_dsm:
@@ -261,7 +264,7 @@ def plot(prob, com, sit, dt, timesteps, timesteps_plot,
 
         # bar plot for DSM up-/downshift power (bar width depending on dt)
         ax2.bar(hoursteps,
-                deltademand.values/dt[0], width=0.8 * dt[0],
+                deltademand.values / dt[0], width=0.8 * dt[0],
                 color=to_color('Delta'),
                 edgecolor='none')
 
@@ -270,20 +273,20 @@ def plot(prob, com, sit, dt, timesteps, timesteps_plot,
         ax2.set_ylabel('{} ({})'.format(power_name, power_unit))
 
     # make xtick distance duration-dependent
-    if len(timesteps_plot) > 26 * 168 / dt[0]:    # time horizon > half a year
+    if len(timesteps_plot) > 26 * 168 / dt[0]:     # time horizon > half a year
         steps_between_ticks = int(168 * 4 / dt[0])  # tick every four weeks
-    elif len(timesteps_plot) > 3 * 168 / dt[0]:   # time horizon > three weeks
-        steps_between_ticks = int(168 / dt[0])      # tick every week
-    elif len(timesteps_plot) > 2 * 24 / dt[0]:    # time horizon > two days
-        steps_between_ticks = int(24 / dt[0])       # tick every day
-    elif len(timesteps_plot) > 24 / dt[0]:        # time horizon > a day
-        steps_between_ticks = int(6 / dt[0])        # tick every six hours
-    else:                                         # time horizon <= a day
-        steps_between_ticks = int(3 / dt[0])        # tick every three hours
+    elif len(timesteps_plot) > 3 * 168 / dt[0]:    # time horizon > three weeks
+        steps_between_ticks = int(168 / dt[0])     # tick every week
+    elif len(timesteps_plot) > 2 * 24 / dt[0]:     # time horizon > two days
+        steps_between_ticks = int(24 / dt[0])      # tick every day
+    elif len(timesteps_plot) > 24 / dt[0]:         # time horizon > a day
+        steps_between_ticks = int(6 / dt[0])       # tick every six hours
+    else:                                          # time horizon <= a day
+        steps_between_ticks = int(3 / dt[0])       # tick every three hours
 
-    hoursteps_plot_ = hoursteps_plot[(steps_between_ticks-1):]
-    hoursteps_plot_ = hoursteps_plot_[::steps_between_ticks]  # take whole h's
-    xticks = np.insert(hoursteps_plot_, 0, hoursteps_plot[0])  # add 1st t.step
+    hoursteps_plot_ = hoursteps_plot[(steps_between_ticks - 1):]
+    hoursteps_plot_ = hoursteps_plot_[::steps_between_ticks]   # take hole h's
+    xticks = np.insert(hoursteps_plot_, 0, hoursteps_plot[0])  # add 1st tstep
 
     # set limits and ticks for all axes
     for ax in all_axes:
@@ -318,18 +321,19 @@ def result_figures(prob, figure_basename, timesteps, plot_title_prefix=None,
     """Create plots for multiple periods and sites and save them to files.
 
     Args:
-        prob: urbs model instance
-        figure_basename: relative filename prefix that is shared
-        plot_title_prefix: (optional) plot title identifier
-        plot_tuples: (optional) list of (sit, com) tuples to plot
-                     sit may be individual site names or lists of sites
-                     default: all demand (sit, com) tuples are plotted
-        plot_sites_name: (optional) dict of names for created plots
-        periods: (optional) dict of 'period name': timesteps_list items
-                 default: one period 'all' with all timesteps is assumed
-        extensions: (optional) list of file extensions for plot images
-                    default: png, pdf
-        **kwds: (optional) keyword arguments are forwarded to urbs.plot()
+        - prob: urbs model instance
+        - figure_basename: relative filename prefix that is shared;
+        - timesteps: global varaible of modeled timesteps;
+        - plot_title_prefix: (optional) plot title identifier;
+        - plot_tuples: (optional) list of (sit, com) tuples to plot sit may be
+          individual site names or lists of sites, default: all demand
+          (sit, com) tuples are plotted;
+        - plot_sites_name: (optional) dict of names for created plots;
+        - periods: (optional) dict of 'period name': timesteps_list items,
+          default: one period 'all' with all timesteps is assumed;
+        - extensions: (optional) list of file extensions for plot images,
+          default: png, pdf;
+        - ``**kwds: (optional) keyword arguments are forwarded to urbs.plot()``
     """
     import matplotlib.pyplot as plt
 
@@ -349,7 +353,7 @@ def result_figures(prob, figure_basename, timesteps, plot_title_prefix=None,
         extensions = ['png', 'pdf']
 
     # create timeseries plot for each demand (site, commodity) timeseries
-    for sit, com in plot_tuples:
+    for stf, sit, com in plot_tuples:
         # wrap single site name in 1-element list for consistent behaviour
         if is_string(sit):
             help_sit = [sit]
@@ -359,12 +363,13 @@ def result_figures(prob, figure_basename, timesteps, plot_title_prefix=None,
 
         try:
             plot_sites_name[sit]
-        except:
+        except BaseException:
             plot_sites_name[sit] = str(sit)
 
         for period, periodrange in periods.items():
             # do the plotting
-            fig = plot(prob, com, help_sit, dt, timesteps, periodrange, **kwds)
+            fig = plot(prob, stf, com, help_sit, dt, timesteps, periodrange,
+                       **kwds)
 
             # change the figure title
             ax0 = fig.get_axes()[0]
@@ -372,14 +377,14 @@ def result_figures(prob, figure_basename, timesteps, plot_title_prefix=None,
             if not plot_title_prefix:
                 plot_title_prefix = os.path.basename(figure_basename)
 
-            new_figure_title = '{}: {} in {}'.format(
-                plot_title_prefix, com, plot_sites_name[sit])
+            new_figure_title = '{}: {} in {}, {}'.format(
+                plot_title_prefix, com, plot_sites_name[sit], stf)
             ax0.set_title(new_figure_title)
 
             # save plot to files
             for ext in extensions:
-                fig_filename = '{}-{}-{}-{}.{}'.format(
-                    figure_basename, com, ''.join(
+                fig_filename = '{}-{}-{}-{}-{}.{}'.format(
+                    figure_basename, stf, com, ''.join(
                         plot_sites_name[sit]), period, ext)
                 fig.savefig(fig_filename, bbox_inches='tight')
             plt.close(fig)
@@ -401,7 +406,7 @@ def to_color(obj=None):
     if obj is None:
         obj = random()
     try:
-        color = tuple(rgb/255.0 for rgb in COLORS[obj])
+        color = tuple(rgb / 255.0 for rgb in COLORS[obj])
     except KeyError:
         # random deterministic color
         import hashlib
