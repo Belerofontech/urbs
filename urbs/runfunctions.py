@@ -1,5 +1,6 @@
 import os
 import pyomo.environ
+import platform
 from pyomo.opt.base import SolverFactory
 from datetime import datetime, date
 from .model import create_model

@@ -1,7 +1,6 @@
 import os
 import shutil
 import urbs
-import platform
 
 
 input_files = 'Input'
